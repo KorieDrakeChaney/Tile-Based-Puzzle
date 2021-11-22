@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <style>
+        #preview {
+        padding: 20px;
+        width: 47%;
+        box-sizing: border-box;  
+        }
+
+        .shadowbox {
+        -webkit-box-shadow: 0 0 80px rgba(0, 0, 0, 0.30), inset 0 0 5px rgba(0, 0, 0, 0.6);
+        }         
+    </style>
+    <h1 class="code-line" data-line-start=0 data-line-end=1 ><a id="Tutorial_Buildbox_TilePuzzleGame_0"></a>Tutorial Buildbox Tile-Puzzle-Game</h1>
+    <h2 class="code-line" data-line-start=3 data-line-end=4 ><a id="Spawner_3"></a>Spawner</h2>
+    <p class="has-line-data" data-line-start="4" data-line-end="5">The spawner allows you create 4-8 by 4-8 tile grid.</p>
+    <pre><code class="has-line-data" data-line-start="7" data-line-end="34" class="language-javascript">    <span class="hljs-comment">// If Signal is "Enabled"</span>
+      <span class="hljs-keyword">if</span>(name == <span class="hljs-string">"Enabled"</span>){
+        cubes = [];
+    
+        <span class="hljs-comment">// Get the values from attribute</span>
+        <span class="hljs-keyword">let</span> width = <span class="hljs-keyword">this</span>.attribute(<span class="hljs-string">'Width'</span>);
+        <span class="hljs-keyword">let</span> height = <span class="hljs-keyword">this</span>.attribute(<span class="hljs-string">'Height'</span>);
+        <span class="hljs-comment">// the i variable is so that I can tag each cube with an ID</span>
+        <span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>;
+        <span class="hljs-comment">// the for loop, the magic of it all, creates </span>
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">let</span> x = <span class="hljs-number">0</span>; x &lt; width; x++){
+          <span class="hljs-keyword">for</span>(<span class="hljs-keyword">let</span> z = <span class="hljs-number">0</span>; z &lt; height; z++){
+            asset = <span class="hljs-keyword">this</span>.attribute(<span class="hljs-string">'Asset'</span>);
+            ent = <span class="hljs-keyword">this</span>.scene().create(asset);
+            pos = <span class="hljs-keyword">new</span> Vec3(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+            cubes.push(ent);
+            <span class="hljs-comment">// This then uses a signal to pass to Push, which then sends to the manager, the brain of all this.</span>
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"Push"</span>, [ent, width, height]);
+            ent.ID = i++;
+            <span class="hljs-comment">// This is the other part of the magic, this is the position on the grid not in World Space</span>
+            ent.Position = <span class="hljs-keyword">new</span> Vec3(x + <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, z + <span class="hljs-number">1</span>);
+            ent.setScale(<span class="hljs-number">1</span> * width/<span class="hljs-number">4</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span> * height/<span class="hljs-number">4</span>);
+            ent.setPosition(pos.x + ((<span class="hljs-number">2.1</span> * width/<span class="hljs-number">4</span>) * x), pos.y, pos.z  + ((<span class="hljs-number">2.1</span> * height/<span class="hljs-number">4</span>) * z))
+          
+          }
+        }
+    </code></pre>
+    <p class="has-line-data" data-line-start="34" data-line-end="36">There’s another signal that is called &quot;Load Level, which is what the manager calls when you lose or win…<br>
+    Same code, but it clears the data like this…</p>
+    <pre><code class="has-line-data" data-line-start="38" data-line-end="48" class="language-javascript">  <span class="hljs-comment">// this makes sure that the cubes length is greater than 1</span>
+      <span class="hljs-keyword">if</span>(cubes.length &gt; <span class="hljs-number">1</span>){
+        <span class="hljs-comment">// it gets cube in cubes array, then uses the function "remove" which removes entity</span>
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">let</span> cube <span class="hljs-keyword">in</span> cubes){
+          cubes[cube].remove();   
+        }
+      }
+      <span class="hljs-comment">// then we clear array</span>
+      cubes = []; 
+    </code></pre>
+    <h2 class="code-line" data-line-start=49 data-line-end=50 ><a id="Manager_49"></a>Manager</h2>
+    <ul>
+    <li class="has-line-data" data-line-start="51" data-line-end="218">
+    <h3 class="code-line" data-line-start=51 data-line-end=52 ><a id="Check_Grid_signal_51"></a>Check Grid signal</h3>
+    <p class="has-line-data" data-line-start="53" data-line-end="54">The check grid function checks grid for valid moves and if there is a loss or victory</p>
+    <pre><code class="has-line-data" data-line-start="56" data-line-end="116" class="language-javascript">  <span class="hljs-keyword">if</span>(name == <span class="hljs-string">"GridCheck"</span>){
+        <span class="hljs-keyword">let</span> pos = head.Position;
+        <span class="hljs-comment">// right</span>
+        right = <span class="hljs-keyword">new</span> Vec3(pos.x + <span class="hljs-number">1.0</span>, pos.y, pos.z);
+        <span class="hljs-keyword">if</span>(value.Position.x == right.x &amp;&amp; value.Position.y == right.y &amp;&amp; value.Position.z == right.z){
+          <span class="hljs-keyword">if</span> (!tail.includes(value) &amp;&amp; !blocked.includes(value)){
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"Spawn Horizontal-Right"</span>, [value.position(), width, height]);
+            tail.push(head);
+            head = value;
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"InteractedSound"</span>, value.ID);
+            }
+    
+          }
+        <span class="hljs-comment">// left</span>
+        left = <span class="hljs-keyword">new</span> Vec3(pos.x - <span class="hljs-number">1.0</span>, pos.y, pos.z);
+        <span class="hljs-keyword">if</span>(value.Position.x == left.x &amp;&amp; value.Position.y == left.y &amp;&amp; value.Position.z == left.z){
+          <span class="hljs-keyword">if</span> (!tail.includes(value) &amp;&amp; !blocked.includes(value)){
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"Spawn Horizontal-Left"</span>, [value.position(), width, height]);
+            tail.push(head);
+            head = value;
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"InteractedSound"</span>, value.ID);
+            }
+          }
+        <span class="hljs-comment">// down</span>
+        down = <span class="hljs-keyword">new</span> Vec3(pos.x, pos.y, pos.z + <span class="hljs-number">1.0</span>);
+        <span class="hljs-keyword">if</span>(value.Position.x == down.x &amp;&amp; value.Position.y == down.y &amp;&amp; value.Position.z == down.z){
+          <span class="hljs-keyword">if</span> (!tail.includes(value) &amp;&amp; !blocked.includes(value)){
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"Spawn Vertical-Down"</span>, [value.position(), width, height]);
+            tail.push(head);
+            head = value;
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"InteractedSound"</span>, value.ID);
+            }
+          }
+        <span class="hljs-comment">// up</span>
+        up = <span class="hljs-keyword">new</span> Vec3(pos.x, pos.y, pos.z - <span class="hljs-number">1.0</span>);
+        <span class="hljs-keyword">if</span>(value.Position.x == up.x &amp;&amp; value.Position.y == up.y &amp;&amp; value.Position.z == up.z){
+          <span class="hljs-keyword">if</span> (!tail.includes(value) &amp;&amp; !blocked.includes(value)){
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"Spawn Vertical-Up"</span>, [value.position(), width, height]);
+            tail.push(head);
+            head = value;
+            <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"InteractedSound"</span>, value.ID);         
+            }
+        }
+        <span class="hljs-comment">// calls a function "checkGrid" which then returns a boolean</span>
+        <span class="hljs-comment">// if returns true, victory ! </span>
+        <span class="hljs-keyword">if</span> (checkGrid()){ 
+          clearScene();
+          victory = <span class="hljs-literal">true</span>;
+          <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"Success"</span>, <span class="hljs-literal">true</span>);
+    
+        }
+        <span class="hljs-comment">// if returns false, failure :(</span>
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(checkGrid() == <span class="hljs-literal">false</span>){    
+          clearScene();
+          failure = <span class="hljs-literal">true</span>;
+          <span class="hljs-keyword">this</span>.emitSignal(<span class="hljs-string">"Defeat"</span>, <span class="hljs-literal">true</span>);
+          }
+        }
+    }
+    </code></pre>
+    <ul>
+    <li class="has-line-data" data-line-start="117" data-line-end="119">
+    <h3 class="code-line" data-line-start=117 data-line-end=118 ><a id="The_checkGrid_function_117"></a>The checkGrid() function</h3>
+    </li>
+    </ul>
+    <pre><code class="has-line-data" data-line-start="120" data-line-end="176" class="language-javascript">  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">checkGrid</span>(<span class="hljs-params"></span>)</span>{
+        <span class="hljs-comment">// this references the heads position</span>
+        <span class="hljs-keyword">let</span> pos = head.Position;
+        <span class="hljs-comment">// then figures out the positions around the heads position</span>
+        right = <span class="hljs-keyword">new</span> Vec3(pos.x + <span class="hljs-number">1.0</span>, pos.y, pos.z);
+        left = <span class="hljs-keyword">new</span> Vec3(pos.x - <span class="hljs-number">1.0</span>, pos.y, pos.z);
+        down = <span class="hljs-keyword">new</span> Vec3(pos.x, pos.y, pos.z + <span class="hljs-number">1.0</span>);
+        up = <span class="hljs-keyword">new</span> Vec3(pos.x, pos.y, pos.z - <span class="hljs-number">1.0</span>);
+        
+    
+        <span class="hljs-comment">// Some times you'll be in corners or on edges, meaning that there's only certain valid moves</span>
+        <span class="hljs-comment">// you can't go left if you're on the farthest left side, or right if you're on the farthest right side</span>
+        <span class="hljs-comment">// this checks your valid positions</span>
+        <span class="hljs-keyword">let</span> activeCorners = [];
+    
+        <span class="hljs-keyword">if</span> (head.Position.x &lt;= width - <span class="hljs-number">1</span>) activeCorners.push(right);
+        <span class="hljs-keyword">if</span> (head.Position.x &gt;= <span class="hljs-number">2</span>) activeCorners.push(left);
+        <span class="hljs-keyword">if</span> (head.Position.z &lt;= height - <span class="hljs-number">1</span>) activeCorners.push(down);
+        <span class="hljs-keyword">if</span> (head.Position.z &gt;= <span class="hljs-number">2</span>) activeCorners.push(up);
+        
+        <span class="hljs-comment">// check is the amount of cubes in tail or blocked that are around you</span>
+        <span class="hljs-keyword">let</span> check = <span class="hljs-number">0</span>;
+        
+        <span class="hljs-comment">// updates check for amount of cubes in tail or blocked around head</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i <span class="hljs-keyword">in</span> activeCorners){
+          <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> cube <span class="hljs-keyword">in</span> tail){
+            <span class="hljs-keyword">if</span> (tail[cube].Position.x == activeCorners[i].x &amp;&amp; tail[cube].Position.z == activeCorners[i].z) check += <span class="hljs-number">1</span>;   
+          }
+          <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> block <span class="hljs-keyword">in</span> blocked){
+            <span class="hljs-keyword">if</span> (blocked[block].Position.x == activeCorners[i].x &amp;&amp; blocked[block].Position.z == activeCorners[i].z) check += <span class="hljs-number">1</span>;
+          }
+        }
+        
+        <span class="hljs-comment">// figures out how many cubes in tail</span>
+        <span class="hljs-keyword">let</span> count = <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> cube <span class="hljs-keyword">in</span> manager){
+          <span class="hljs-keyword">if</span> (tail.includes(manager[cube])){
+            count += <span class="hljs-number">1</span>;   
+          }
+        }
+        <span class="hljs-comment">// checks if you went in every valid move = success</span>
+        <span class="hljs-keyword">if</span> (check == activeCorners.length &amp;&amp; count == width * height - <span class="hljs-number">1</span> - blocked.length){
+          log(<span class="hljs-string">'success'</span>);
+          <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+        }
+        <span class="hljs-comment">// checks if you're surrounded which then = failure</span>
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(check == activeCorners.length){
+          log(<span class="hljs-string">'failure'</span>);
+          <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        }
+        <span class="hljs-comment">// if none of the above, return null</span>
+        <span class="hljs-keyword">else</span> { 
+          <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+        } 
+      }
+    </code></pre>
+    <ul>
+    <li class="has-line-data" data-line-start="177" data-line-end="179">
+    <h3 class="code-line" data-line-start=177 data-line-end=178 ><a id="Pipe_177"></a>Pipe</h3>
+    </li>
+    </ul>
+    <pre><code class="has-line-data" data-line-start="180" data-line-end="218" class="language-javascript"><span class="hljs-comment">// gets position and spawns</span>
+    <span class="hljs-keyword">if</span>(source == <span class="hljs-string">'Spawn Vertical-Down'</span>)
+      {
+        asset = <span class="hljs-keyword">this</span>.attribute(<span class="hljs-string">'Vertical'</span>);
+        pos = value[<span class="hljs-number">0</span>];
+        ent = <span class="hljs-keyword">this</span>.scene().create(asset);
+        ent.setPosition(pos.x, pos.y + <span class="hljs-number">1</span>, pos.z - height / <span class="hljs-number">4</span>);
+        ent.setScale(<span class="hljs-number">2.2</span> * width / <span class="hljs-number">4</span>, <span class="hljs-number">2.2</span>, <span class="hljs-number">2.2</span> * height / <span class="hljs-number">4</span>);
+        connectPieces.push(ent);  
+      }
+    <span class="hljs-keyword">if</span>(source == <span class="hljs-string">'Spawn Horizontal-Right'</span>)
+      {
+        asset = <span class="hljs-keyword">this</span>.attribute(<span class="hljs-string">'Horizontal'</span>);
+        pos = value[<span class="hljs-number">0</span>];
+        ent = <span class="hljs-keyword">this</span>.scene().create(asset);
+        ent.setScale(<span class="hljs-number">2.2</span> * width / <span class="hljs-number">4</span>, <span class="hljs-number">2.2</span>, <span class="hljs-number">2.2</span> * height / <span class="hljs-number">4</span>);
+        ent.setPosition(pos.x - width / <span class="hljs-number">4</span>, pos.y + <span class="hljs-number">1</span>, pos.z);
+        connectPieces.push(ent);      
+      }
+    <span class="hljs-keyword">if</span>(source == <span class="hljs-string">'Spawn Vertical-Up'</span>)
+      {
+        asset = <span class="hljs-keyword">this</span>.attribute(<span class="hljs-string">'Vertical'</span>);
+        pos = value[<span class="hljs-number">0</span>];
+        ent = <span class="hljs-keyword">this</span>.scene().create(asset);
+        ent.setPosition(pos.x, pos.y + <span class="hljs-number">1</span>, pos.z + height / <span class="hljs-number">4</span>);
+        ent.setScale(<span class="hljs-number">2.2</span> * width / <span class="hljs-number">4</span>, <span class="hljs-number">2.2</span>, <span class="hljs-number">2.2</span> * height / <span class="hljs-number">4</span>);
+        connectPieces.push(ent);      
+      }
+    <span class="hljs-keyword">if</span>(source == <span class="hljs-string">'Spawn Horizontal-Left'</span>)
+      {
+        asset = <span class="hljs-keyword">this</span>.attribute(<span class="hljs-string">'Horizontal'</span>);
+        pos = value[<span class="hljs-number">0</span>];
+        ent = <span class="hljs-keyword">this</span>.scene().create(asset);
+        ent.setPosition(pos.x + width / <span class="hljs-number">4</span>, pos.y + <span class="hljs-number">1</span>, pos.z);
+        ent.setScale(<span class="hljs-number">2.2</span> * width / <span class="hljs-number">4</span>, <span class="hljs-number">2.2</span>, <span class="hljs-number">2.2</span> * height / <span class="hljs-number">4</span>);
+        connectPieces.push(ent);      
+      }
+    </code></pre>
+    </li>
+    <li class="has-line-data" data-line-start="218" data-line-end="220">
+    <h3 class="code-line" data-line-start=218 data-line-end=219 ><a id="Cut_Pipe_218"></a>Cut Pipe</h3>
+    </li>
+    </ul>
+    <pre><code class="has-line-data" data-line-start="221" data-line-end="240" class="language-javascript">  <span class="hljs-keyword">if</span>(source == <span class="hljs-string">'CutPipe'</span>)
+      {
+        <span class="hljs-comment">// finds value</span>
+        numToRemove = value; 
+        <span class="hljs-comment">// creates a duplicate array of connectPieces</span>
+        <span class="hljs-keyword">let</span> array = connectPieces;
+    
+        <span class="hljs-comment">// removedPieces = the duplices array, with the pieces to remove</span>
+        removedPieces = array.splice(numToRemove, connectPieces.length - numToRemove);
+        <span class="hljs-comment">// is the new array for connectPieces</span>
+        connectPieces = connectPieces.splice(<span class="hljs-number">0</span>, numToRemove);
+        
+        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">let</span> i <span class="hljs-keyword">in</span> removedPieces)
+        {
+          removedPieces[i].remove();
+        }
+        removedPices = [];  
+      }
+    </code></pre>
+    <p class="has-line-data" data-line-start="241" data-line-end="242">Now that’s the main logic : ) , nothing too fancy</p>
+</body>
+</html>
